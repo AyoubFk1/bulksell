@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bulk Sell → SOL</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent: #7c3aed;
+    --accent-glow: rgba(124,58,237,0.15);
+    --green: #10b981;
+    --red: #ef4444;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --card: #13131c;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px;
+  }
+
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+
+  header {
+    max-width: 860px;
+    margin: 0 auto 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .logo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .wallet-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: opacity 0.15s;
+  }
+
+  .wallet-btn:hover { opacity: 0.85; }
+  .wallet-btn.connected { background: var(--green); }
+  .wallet-btn.disconnected { background: var(--accent); }
+
+  .wallet-addr {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+    text-align: right;
+  }
+
+  .main { max-width: 860px; margin: 0 auto; }
+
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .stat {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+
+  .stat-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .stat-value.green { color: var(--green); }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .controls-left { display: flex; gap: 8px; align-items: center; }
+
+  .btn {
+    border: none;
+    border-radius: 7px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.15s;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-sell {
+    background: var(--green);
+    color: #fff;
+    font-weight: 600;
+    padding: 9px 20px;
+  }
+
+  .btn-sell:hover { opacity: 0.88; }
+  .btn-sell:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-refresh {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  .btn-refresh:hover { color: var(--text); border-color: var(--muted); }
+
+  .slippage-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .slippage-row input {
+    width: 60px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    padding: 4px 8px;
+    text-align: center;
+  }
+
+  .token-table {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .table-head {
+    display: grid;
+    grid-template-columns: 36px 1fr 140px 140px 100px;
+    padding: 10px 16px;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .token-row {
+    display: grid;
+    grid-template-columns: 36px 1fr 140px 140px 100px;
+    padding: 12px 16px;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+    cursor: pointer;
+  }
+
+  .token-row:last-child { border-bottom: none; }
+  .token-row:hover { background: rgba(124,58,237,0.05); }
+  .token-row.selected { background: var(--accent-glow); }
+
+  .check {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .token-info { display: flex; align-items: center; gap: 10px; }
+
+  .token-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .token-icon img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+  .token-name {
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .token-addr {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+
+  .token-balance {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .token-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--green);
+  }
+
+  .token-value.zero { color: var(--muted); }
+
+  .status-badge {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    display: inline-block;
+  }
+
+  .badge-pending { background: rgba(100,116,139,0.15); color: var(--muted); }
+  .badge-selling { background: rgba(234,179,8,0.15); color: #eab308; }
+  .badge-done { background: rgba(16,185,129,0.15); color: var(--green); }
+  .badge-error { background: rgba(239,68,68,0.15); color: var(--red); }
+  .badge-skipped { background: rgba(100,116,139,0.1); color: #475569; }
+
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--muted);
+  }
+
+  .empty-icon { font-size: 36px; margin-bottom: 12px; }
+  .empty-title { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 6px; }
+  .empty-sub { font-size: 13px; line-height: 1.5; }
+
+  .progress-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 14px;
+    overflow: hidden;
+    display: none;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+
+  .log-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-top: 16px;
+    max-height: 160px;
+    overflow-y: auto;
+    display: none;
+  }
+
+  .log-entry {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  .log-entry.success { color: var(--green); }
+  .log-entry.error { color: var(--red); }
+  .log-entry.info { color: #7c3aed; }
+
+  .notice {
+    background: rgba(124,58,237,0.08);
+    border: 1px solid rgba(124,58,237,0.2);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #a78bfa;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 600px) {
+    .table-head, .token-row {
+      grid-template-columns: 30px 1fr 90px 80px;
+    }
+    .table-head > *:last-child,
+    .token-row > *:last-child { display: none; }
+    .stats-bar { grid-template-columns: 1fr 1fr; }
+    .stats-bar > *:last-child { grid-column: span 2; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">bulk<span>sell</span>.sol</div>
+  </div>
+  <div>
+    <button class="wallet-btn disconnected" id="walletBtn" onclick="connectWallet()">Connect Phantom</button>
+    <div class="wallet-addr" id="walletAddr"></div>
+  </div>
+</header>
+
+<div class="main">
+
+  <div class="notice">
+    ⚡ Signs via wallet extension — no private key required. Works with Phantom, Solflare, or Backpack.<br><br>
+    🔑 <strong>Free RPC key required:</strong> Go to <a href="https://dev.helius.xyz" target="_blank" style="color:#a78bfa">dev.helius.xyz</a> → Sign up free → Copy your API key → paste below:<br><br>
+    <input id="heliusKey" type="text" placeholder="Paste Helius API key here..." style="width:100%;background:#1a1a2e;border:1px solid #7c3aed;border-radius:6px;color:#e2e8f0;font-family:monospace;font-size:13px;padding:8px 10px;margin-top:4px;box-sizing:border-box;">
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-label">Tokens found</div>
+      <div class="stat-value" id="statTotal">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Selected</div>
+      <div class="stat-value" id="statSelected">0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Est. SOL return</div>
+      <div class="stat-value green" id="statSOL">—</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="controls-left">
+      <button class="btn btn-ghost" onclick="selectAll()">Select All</button>
+      <button class="btn btn-ghost" onclick="selectNone()">Clear</button>
+      <button class="btn btn-refresh btn" onclick="loadTokens()">↻ Refresh</button>
+      <div class="slippage-row">
+        Slippage <input type="number" id="slippageInput" value="1" min="0.1" max="50" step="0.1"> %
+      </div>
+    </div>
+    <button class="btn btn-sell" id="sellBtn" onclick="sellSelected()" disabled>Sell Selected → SOL</button>
+  </div>
+
+  <div class="progress-bar" id="progressBar">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <div class="token-table">
+    <div class="table-head">
+      <div><input type="checkbox" class="check" id="masterCheck" onchange="toggleAll(this)"></div>
+      <div>Token</div>
+      <div>Balance</div>
+      <div>Est. SOL value</div>
+      <div>Status / Copy</div>
+    </div>
+    <div id="tokenList">
+      <div class="empty-state">
+        <div class="empty-icon">👻</div>
+        <div class="empty-title">No wallet connected</div>
+        <div class="empty-sub">Connect your Phantom wallet to scan for dust tokens</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="log-box" id="logBox"></div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+<script src="https://unpkg.com/@solana/web3.js@1.87.6/lib/index.iife.min.js"></script>
+<script>
+// ─── State ──────────────────────────────────────────────────────────────────
+let walletPubkey = null;
+let tokens = [];
+let selected = new Set();
+let selling = false;
+const SOL_MINT = 'So11111111111111111111111111111111111111112';
+const WSOL_MINT = 'So11111111111111111111111111111111111111112';
+async function jupiFetch(url, opts = {}) {
+  // Try newer Jupiter API endpoint first (better CORS support)
+  const newUrl = url.replace('https://quote-api.jup.ag/v6/', 'https://api.jup.ag/swap/v1/');
+  
+  const attempts = [
+    [newUrl, opts],
+    [url, opts],
+    ['https://corsproxy.io/?' + encodeURIComponent(newUrl), opts],
+    ['https://corsproxy.io/?' + encodeURIComponent(url), opts],
+    ['https://api.allorigins.win/raw?url=' + encodeURIComponent(newUrl), opts],
+  ];
+
+  let lastErr = '';
+  for (const [fetchUrl, fetchOpts] of attempts) {
+    try {
+      const r = await fetch(fetchUrl, { ...fetchOpts });
+      if (r.ok) return r;
+      const body = await r.text();
+      lastErr = r.status + ': ' + body.slice(0, 80);
+      log('  attempt failed: ' + lastErr, 'error');
+    } catch(e) {
+      lastErr = e.message;
+    }
+  }
+  throw new Error('All attempts failed: ' + lastErr);
+}
+
+// ─── Wallet ──────────────────────────────────────────────────────────────────
+function getProvider() {
+  // Check all possible wallet providers
+  if (window.phantom?.solana?.isPhantom) return window.phantom.solana;
+  if (window.solana?.isPhantom) return window.solana;
+  if (window.solflare?.isSolflare) return window.solflare;
+  if (window.backpack) return window.backpack;
+  if (window.solana) return window.solana; // any solana wallet
+  return null;
+}
+
+async function connectWallet() {
+  // Wait up to 3 seconds for wallet to inject
+  let provider = null;
+  for (let i = 0; i < 30; i++) {
+    provider = getProvider();
+    if (provider) break;
+    await sleep(100);
+  }
+
+  if (!provider) {
+    const msg = `No Solana wallet found.\n\nPlease:\n1. Install Phantom from phantom.app\n2. Refresh this page\n3. Click Connect again\n\nIf Phantom is installed, try:\n• Refreshing the page\n• Disabling other wallet extensions\n• Opening the file in Chrome or Brave`;
+    alert(msg);
+    return;
+  }
+
+  try {
+    let resp;
+    // Different wallets have different connect methods
+    if (provider.connect) {
+      resp = await provider.connect();
+    } else if (provider.request) {
+      resp = await provider.request({ method: 'connect' });
+    }
+
+    walletPubkey = resp?.publicKey?.toString() || resp?.toString();
+    if (!walletPubkey) throw new Error('Could not get public key');
+
+    document.getElementById('walletBtn').textContent = 'Connected';
+    document.getElementById('walletBtn').className = 'wallet-btn connected';
+    document.getElementById('walletAddr').textContent = walletPubkey.slice(0,4) + '...' + walletPubkey.slice(-4);
+    log('Wallet connected: ' + walletPubkey, 'info');
+
+    // Store provider globally
+    window._solProvider = provider;
+    await loadTokens();
+  } catch(e) {
+    if (e.code === 4001) {
+      log('Connection rejected by user', 'error');
+    } else {
+      log('Connection failed: ' + e.message, 'error');
+      document.getElementById('logBox').style.display = 'block';
+    }
+  }
+}
+
+// ─── Token loading ────────────────────────────────────────────────────────────
+async function loadTokens() {
+  if (!walletPubkey) return;
+  document.getElementById('tokenList').innerHTML = `<div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-title">Scanning wallet...</div></div>`;
+  tokens = [];
+  selected.clear();
+  updateStats();
+
+  try {
+    // Use Solana web3.js with multiple endpoints (handles CORS natively)
+    // Get your free key at dev.helius.xyz (takes 30 seconds)
+    const HELIUS_KEY = document.getElementById('heliusKey').value.trim() || 'demo';
+    const endpoints = [
+      `https://mainnet.helius-rpc.com/?api-key=${HELIUS_KEY}`,
+      'https://api.mainnet-beta.solana.com',
+    ];
+
+    document.getElementById('logBox').style.display = 'block';
+    const TOKEN_PROGRAM_ID = new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+    const pubkey = new solanaWeb3.PublicKey(walletPubkey);
+
+    let tokenResult = null;
+    for (const endpoint of endpoints) {
+      try {
+        log('Trying: ' + endpoint.split('/')[2] + '...', 'info');
+        const conn = new solanaWeb3.Connection(endpoint, { commitment: 'confirmed', confirmTransactionInitialTimeout: 10000 });
+        tokenResult = await conn.getParsedTokenAccountsByOwner(pubkey, { programId: TOKEN_PROGRAM_ID });
+        if (tokenResult?.value) { log('Connected ✓', 'success'); window._connection = conn; break; }
+      } catch(e) { log('Failed: ' + e.message.slice(0,40), 'error'); tokenResult = null; }
+    }
+    if (!tokenResult?.value) throw new Error('All RPC endpoints failed. Check your internet connection.');
+    const accounts = tokenResult.value.map(a => ({
+      pubkey: a.pubkey.toString(),
+      account: { data: { parsed: { info: a.account.data.parsed.info } } }
+    }));
+
+    // Filter to non-zero balances
+    const nonZero = accounts.filter(a => {
+      const info = a.account.data.parsed.info;
+      return parseFloat(info.tokenAmount.uiAmount) > 0;
+    });
+
+    if (nonZero.length === 0) {
+      document.getElementById('tokenList').innerHTML = `<div class="empty-state"><div class="empty-icon">✨</div><div class="empty-title">No dust tokens found</div><div class="empty-sub">Your wallet is clean!</div></div>`;
+      document.getElementById('statTotal').textContent = '0';
+      return;
+    }
+
+    // Build token objects
+    tokens = nonZero.map(a => {
+      const info = a.account.data.parsed.info;
+      return {
+        mint: info.mint,
+        balance: parseFloat(info.tokenAmount.uiAmount),
+        rawBalance: info.tokenAmount.amount,
+        decimals: info.tokenAmount.decimals,
+        symbol: info.mint.slice(0,4).toUpperCase(),
+        name: info.mint.slice(0,6) + '...',
+        image: null,
+        solValue: null,
+        status: 'pending',
+        account: a.pubkey
+      };
+    });
+
+    document.getElementById('statTotal').textContent = tokens.length;
+    renderTokens();
+
+    // Fetch Jupiter quotes in background
+    fetchQuotes();
+
+  } catch(e) {
+    log('Error loading tokens: ' + e.message, 'error');
+    document.getElementById('tokenList').innerHTML = `<div class="empty-state"><div class="empty-icon">❌</div><div class="empty-title">Error loading tokens</div><div class="empty-sub">${e.message}</div></div>`;
+  }
+}
+
+async function fetchQuotes() {
+  const slippage = parseFloat(document.getElementById('slippageInput').value) * 100;
+
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
+    if (t.mint === SOL_MINT || t.mint === WSOL_MINT) continue;
+    try {
+      const url = 'https://quote-api.jup.ag/v6/quote?inputMint=' + t.mint + '&outputMint=' + SOL_MINT + '&amount=' + t.rawBalance + '&slippageBps=' + slippage + '&onlyDirectRoutes=false';
+      const res = await jupiFetch(url);
+      const data = await res.json();
+      if (data?.outAmount) {
+        t.solValue = parseInt(data.outAmount) / 1e9;
+      } else {
+        t.solValue = 0;
+      }
+    } catch(e) {
+      t.solValue = 0;
+    }
+    renderTokenRow(i);
+    updateStats();
+  }
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function renderTokens() {
+  if (tokens.length === 0) return;
+  const list = document.getElementById('tokenList');
+  list.innerHTML = tokens.map((t, i) => tokenRowHTML(t, i)).join('');
+}
+
+function tokenRowHTML(t, i) {
+  const checked = selected.has(i) ? 'checked' : '';
+  const selClass = selected.has(i) ? 'selected' : '';
+  const solVal = t.solValue !== null
+    ? (t.solValue > 0 ? `<span class="token-value">${t.solValue.toFixed(6)} SOL</span>` : `<span class="token-value zero">~0</span>`)
+    : `<span class="token-value zero">loading...</span>`;
+  const badge = badgeHTML(t.status);
+  const iconContent = t.image
+    ? `<img src="${t.image}" onerror="this.style.display='none'">`
+    : t.symbol.slice(0,2);
+
+  return `
+    <div class="token-row ${selClass}" id="row-${i}" onclick="toggleRow(${i})">
+      <div><input type="checkbox" class="check" ${checked} onclick="event.stopPropagation();toggleRow(${i})"></div>
+      <div class="token-info">
+        <div class="token-icon">${iconContent}</div>
+        <div>
+          <div class="token-name">${t.symbol}</div>
+          <div class="token-addr">${t.mint.slice(0,8)}...${t.mint.slice(-4)}</div>
+        </div>
+      </div>
+      <div class="token-balance mono">${formatNum(t.balance)}</div>
+      <div>${solVal}</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        ${badge}
+        <button onclick="event.stopPropagation();copyMint('${t.mint}',this)" style="background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:10px;padding:2px 6px;font-family:monospace" title="Copy CA">CA</button>
+      </div>
+    </div>`;
+}
+
+function renderTokenRow(i) {
+  const existing = document.getElementById('row-' + i);
+  if (existing) {
+    existing.outerHTML = tokenRowHTML(tokens[i], i);
+  }
+}
+
+function badgeHTML(status) {
+  const map = {
+    pending: ['badge-pending', 'Pending'],
+    selling: ['badge-selling', 'Selling...'],
+    done: ['badge-done', 'Done ✓'],
+    error: ['badge-error', 'Failed'],
+    skipped: ['badge-skipped', 'No route'],
+  };
+  const [cls, label] = map[status] || ['badge-pending', status];
+  return `<span class="status-badge ${cls}">${label}</span>`;
+}
+
+function formatNum(n) {
+  if (n >= 1e9) return (n/1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return (n/1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(2) + 'K';
+  return n.toFixed(n < 0.01 ? 8 : 4);
+}
+
+// ─── Selection ────────────────────────────────────────────────────────────────
+function toggleRow(i) {
+  if (selling) return;
+  if (selected.has(i)) selected.delete(i);
+  else selected.add(i);
+  renderTokenRow(i);
+  updateStats();
+}
+
+function selectAll() {
+  tokens.forEach((_, i) => selected.add(i));
+  renderTokens();
+  updateStats();
+  document.getElementById('masterCheck').checked = true;
+}
+
+function selectNone() {
+  selected.clear();
+  renderTokens();
+  updateStats();
+  document.getElementById('masterCheck').checked = false;
+}
+
+function toggleAll(cb) {
+  if (cb.checked) selectAll();
+  else selectNone();
+}
+
+function updateStats() {
+  document.getElementById('statSelected').textContent = selected.size;
+  const totalSol = Array.from(selected).reduce((sum, i) => sum + (tokens[i]?.solValue || 0), 0);
+  document.getElementById('statSOL').textContent = totalSol > 0 ? totalSol.toFixed(6) + ' SOL' : '—';
+  document.getElementById('sellBtn').disabled = selected.size === 0 || selling;
+}
+
+// ─── Selling ──────────────────────────────────────────────────────────────────
+async function sellSelected() {
+  if (!walletPubkey || selected.size === 0 || selling) return;
+  if (!window.solana?.isConnected) {
+    alert('Please reconnect your wallet');
+    return;
+  }
+
+  selling = true;
+  document.getElementById('sellBtn').disabled = true;
+  document.getElementById('sellBtn').textContent = 'Selling...';
+  document.getElementById('progressBar').style.display = 'block';
+  document.getElementById('logBox').style.display = 'block';
+
+  const indices = Array.from(selected);
+  let done = 0;
+  let successCount = 0;
+
+  for (const i of indices) {
+    const t = tokens[i];
+    tokens[i].status = 'selling';
+    renderTokenRow(i);
+
+    try {
+      // Re-fetch quote with current slippage
+      const slippage = parseFloat(document.getElementById('slippageInput').value) * 100;
+
+      log('Quoting ' + t.symbol + '...', 'info');
+      const quoteUrl = 'https://quote-api.jup.ag/v6/quote?inputMint=' + t.mint + '&outputMint=' + SOL_MINT + '&amount=' + t.rawBalance + '&slippageBps=' + slippage + '&onlyDirectRoutes=false&asLegacyTransaction=false';
+      const quoteFetch = await jupiFetch(quoteUrl);
+      if (!quoteFetch.ok) throw new Error('Quote API error: ' + quoteFetch.status);
+      const quoteData = await quoteFetch.json();
+
+      if (!quoteData?.outAmount || parseInt(quoteData.outAmount) === 0) {
+        tokens[i].status = 'skipped';
+        log(t.symbol + ': No Jupiter route — token may still be on PumpFun bonding curve (not graduated). Use pump.fun to sell.', 'error');
+        log('  CA: ' + t.mint, 'error');
+        renderTokenRow(i);
+        done++;
+        setProgress(done, indices.length);
+        continue;
+      }
+
+      // Get swap transaction from Jupiter
+      log('Building swap for ' + t.symbol + '...', 'info');
+      const swapFetch = await jupiFetch('https://quote-api.jup.ag/v6/swap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          quoteResponse: quoteData,
+          userPublicKey: walletPubkey,
+          wrapAndUnwrapSol: true,
+          dynamicComputeUnitLimit: true,
+          prioritizationFeeLamports: 1000,
+          asLegacyTransaction: false,
+          skipUserAccountsRpcCalls: true
+        })
+      });
+      if (!swapFetch.ok) throw new Error('Swap API error: ' + swapFetch.status + ' ' + await swapFetch.text());
+      const swapData = await swapFetch.json();
+      const { swapTransaction } = swapData;
+      if (!swapTransaction) throw new Error('No transaction returned from Jupiter');
+
+      // Deserialize and sign via Phantom using web3.js
+      const txBuffer = Uint8Array.from(atob(swapTransaction), c => c.charCodeAt(0));
+      const provider = window._solProvider || window.phantom?.solana || window.solana;
+
+      // Deserialize transaction
+      const transaction = solanaWeb3.VersionedTransaction.deserialize(txBuffer);
+      
+      // Step 1: Sign only (more reliable than signAndSend)
+      log('Approve in Phantom...', 'info');
+      const signed = await provider.signTransaction(transaction);
+      
+      // Step 2: Send via our RPC connection
+      log('Sending to network...', 'info');
+      const conn = window._connection;
+      const rawTx = signed.serialize();
+      let signature;
+      try {
+        // Try with preflight first
+        signature = await conn.sendRawTransaction(rawTx, {
+          skipPreflight: false,
+          maxRetries: 3,
+          preflightCommitment: 'processed'
+        });
+      } catch(e1) {
+        // Preflight failed (ATA conflict etc) — skip simulation and send directly
+        log('Retrying without preflight...', 'info');
+        signature = await conn.sendRawTransaction(rawTx, {
+          skipPreflight: true,
+          maxRetries: 5,
+        });
+      }
+      
+      // Step 3: Wait for on-chain confirmation
+      log('Confirming on-chain... (' + signature.slice(0,8) + '...)', 'info');
+      const { value } = await conn.confirmTransaction({
+        signature,
+        ...(await conn.getLatestBlockhash('confirmed'))
+      }, 'confirmed');
+      
+      if (value?.err) throw new Error('TX failed on-chain: ' + JSON.stringify(value.err));
+
+      tokens[i].status = 'done';
+      log(`✓ ${t.symbol} sold — TX: ${signature.slice(0,8)}...`, 'success');
+      successCount++;
+
+    } catch(e) {
+      tokens[i].status = 'error';
+      const errMsg = e?.message || e?.toString() || 'Unknown error';
+      const errDetail = e?.logs ? ' | ' + e.logs.slice(-1)[0] : '';
+      log('✗ ' + t.symbol + ': ' + errMsg + errDetail, 'error');
+      log('  CA: ' + t.mint, 'error');
+    }
+
+    renderTokenRow(i);
+    done++;
+    setProgress(done, indices.length);
+    await sleep(800); // Small delay between txs to avoid rate limits
+  }
+
+  selling = false;
+  document.getElementById('sellBtn').disabled = false;
+  document.getElementById('sellBtn').textContent = 'Sell Selected → SOL';
+  log(`─── Complete: ${successCount}/${indices.length} sold successfully ───`, 'info');
+}
+
+function setProgress(done, total) {
+  document.getElementById('progressFill').style.width = ((done / total) * 100) + '%';
+}
+
+function log(msg, type = '') {
+  const box = document.getElementById('logBox');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry ' + type;
+  entry.textContent = '> ' + msg;
+  box.appendChild(entry);
+  box.scrollTop = box.scrollHeight;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function copyMint(mint, btn) {
+  navigator.clipboard.writeText(mint).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓';
+    btn.style.color = 'var(--green)';
+    setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1500);
+  }).catch(() => {
+    const el = document.createElement('textarea');
+    el.value = mint;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    btn.textContent = '✓';
+    setTimeout(() => btn.textContent = 'CA', 1500);
+  });
+}
+
+// Auto-connect if already authorized
+window.addEventListener('load', async () => {
+  // Wait for wallets to inject
+  await sleep(500);
+  const provider = getProvider();
+  if (provider) {
+    try {
+      const resp = await provider.connect({ onlyIfTrusted: true });
+      walletPubkey = resp?.publicKey?.toString();
+      if (walletPubkey) {
+        window._solProvider = provider;
+        document.getElementById('walletBtn').textContent = 'Connected';
+        document.getElementById('walletBtn').className = 'wallet-btn connected';
+        document.getElementById('walletAddr').textContent = walletPubkey.slice(0,4) + '...' + walletPubkey.slice(-4);
+        await loadTokens();
+      }
+    } catch(e) { /* not previously connected, user needs to click connect */ }
+  }
+});
+</script>
+</body>
+</html>
