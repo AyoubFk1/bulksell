@@ -158,16 +158,16 @@
 
   .workspace {
     display: grid;
-    grid-template-columns: minmax(180px, 230px) 1fr;
+    grid-template-columns: 1fr minmax(240px, 320px);
     gap: var(--space-4);
     align-items: start;
   }
 
-  @media (max-width: 580px) {
+  @media (max-width: 680px) {
     .workspace { grid-template-columns: 1fr; }
   }
 
-  @media (min-width: 581px) {
+  @media (min-width: 681px) {
     .log-panel { position: sticky; top: var(--space-4); }
   }
 
@@ -242,6 +242,7 @@
     color: var(--text);
   }
   .btn-secondary:hover { border-color: var(--signal); color: var(--signal); }
+  .btn-small { padding: 5px 12px; font-size: 12px; }
 
   .log-output {
     font-family: var(--font-mono);
@@ -360,6 +361,55 @@
     letter-spacing: 0.06em;
   }
 
+  .bot-config-group { margin-bottom: var(--space-3); }
+  .bot-config-group:last-child { margin-bottom: 0; }
+  .bot-config-group-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    margin-bottom: var(--space-2);
+  }
+  .bot-config-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .bot-config-row:last-child { margin-bottom: 0; }
+  .bot-config-phase {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    min-width: 58px;
+  }
+  .bot-config-field { display: flex; flex-direction: column; gap: 2px; }
+  .bot-config-field-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .bot-config-field-value {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .bot-config-row-na { opacity: 0.55; }
+  .bot-config-na { font-style: italic; font-weight: 500; }
+  .bot-config-na-note {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin: 4px 2px 0;
+  }
+
   .ladders {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -428,81 +478,88 @@
     <p class="hero-sub">Paste a wallet. TAPE replays its on-chain buys and sells and reads the exits back as a ladder — or as noise.</p>
   </section>
 
-  <section class="panel panel-narrow">
-    <div class="input-row">
-      <div class="field">
-        <label for="apiKey">Helius API key</label>
-        <input type="password" id="apiKey" placeholder="Free tier works" autocomplete="off" />
-      </div>
-      <div class="field">
-        <label for="walletAddress">Wallet address</label>
-        <input type="text" id="walletAddress" placeholder="8fH3q2eL5aXKzR9dPjvA1nY6cT4mQoWuXsB7Ei0Zk2Ny" autocomplete="off" />
-      </div>
-    </div>
-    <p class="field-hint">Key goes straight to Helius from your browser — never stored, never logged.</p>
-    <p class="field-hint" id="walletHint"></p>
-
-    <div class="input-row-2">
-      <div>
-        <div class="input-row-2-label">Fetch duration</div>
-        <div class="range-selector" id="fetchRangeSelector" role="group" aria-label="Fetch duration">
-          <button type="button" class="range-btn" data-range="3">3D</button>
-          <button type="button" class="range-btn" data-range="7">7D</button>
-          <button type="button" class="range-btn" data-range="30">1M</button>
-          <button type="button" class="range-btn active" data-range="all">ALL</button>
+  <div class="workspace">
+    <section class="panel" id="inputPanel">
+      <div class="input-row">
+        <div class="field">
+          <label for="apiKey">Helius API key</label>
+          <input type="password" id="apiKey" placeholder="Free tier works" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label for="walletAddress">Wallet address</label>
+          <input type="text" id="walletAddress" placeholder="8fH3q2eL5aXKzR9dPjvA1nY6cT4mQoWuXsB7Ei0Zk2Ny" autocomplete="off" />
         </div>
       </div>
-      <button id="runBtn" class="btn-primary" type="button">Read the tape</button>
-    </div>
-  </section>
+      <p class="field-hint">Key goes straight to Helius from your browser — never stored, never logged.</p>
+      <p class="field-hint" id="walletHint"></p>
 
-  <div class="workspace">
-    <section class="panel log-panel" id="logPanel">
-      <div class="panel-label">Live readout</div>
-      <pre class="log-output" id="logOutput" aria-live="polite"></pre>
-    </section>
-
-    <section class="panel">
-      <div class="empty-state" id="emptyState">
-        <p>Nothing read yet. Paste a wallet above and hit <strong>Read the tape</strong>.</p>
-      </div>
-
-      <div id="resultsContent" hidden>
-        <div class="results-header">
-          <div class="panel-label">Signal strength</div>
-          <div class="range-selector" id="viewRangeSelector" role="group" aria-label="Time range">
+      <div class="input-row-2">
+        <div>
+          <div class="input-row-2-label">Fetch duration</div>
+          <div class="range-selector" id="fetchRangeSelector" role="group" aria-label="Fetch duration">
             <button type="button" class="range-btn" data-range="3">3D</button>
             <button type="button" class="range-btn" data-range="7">7D</button>
             <button type="button" class="range-btn" data-range="30">1M</button>
             <button type="button" class="range-btn active" data-range="all">ALL</button>
           </div>
         </div>
-        <svg class="signal-chart" id="signalChart" role="img" aria-label="Distribution of exit percentages, log scaled"></svg>
-        <p class="chart-caption">Tight clustering = a real programmatic ladder. Wide scatter = manual, discretionary exits — there's no fixed pattern to copy.</p>
-        <div class="chart-legend">
-          <span><i class="swatch swatch-signal"></i>profit exit</span>
-          <span><i class="swatch swatch-loss"></i>loss exit</span>
-        </div>
-
-        <div class="stats-bar" id="statsBar"></div>
-
-        <div class="ladders">
-          <div>
-            <div class="panel-label">Take-profit ladder</div>
-            <div id="tpRows"></div>
-          </div>
-          <div>
-            <div class="panel-label">Stop-loss</div>
-            <div id="slRows"></div>
-          </div>
-        </div>
-
-        <p class="result-note">These are his realized fills, not his settings. Treat this as a hypothesis to backtest, not a formula to trust outright.</p>
-
-        <button id="downloadBtn" class="btn-secondary" type="button">Download exits as JSON</button>
+        <button id="runBtn" class="btn-primary" type="button">Read the tape</button>
       </div>
     </section>
+
+    <section class="panel log-panel" id="logPanel">
+      <div class="panel-label">Live readout</div>
+      <pre class="log-output" id="logOutput" aria-live="polite"></pre>
+    </section>
   </div>
+
+  <section class="panel">
+    <div class="empty-state" id="emptyState">
+      <p>Nothing read yet. Paste a wallet above and hit <strong>Read the tape</strong>.</p>
+    </div>
+
+    <div id="resultsContent" hidden>
+      <div class="results-header">
+        <div class="panel-label">Signal strength</div>
+        <div class="range-selector" id="viewRangeSelector" role="group" aria-label="Time range">
+          <button type="button" class="range-btn" data-range="3">3D</button>
+          <button type="button" class="range-btn" data-range="7">7D</button>
+          <button type="button" class="range-btn" data-range="30">1M</button>
+          <button type="button" class="range-btn active" data-range="all">ALL</button>
+        </div>
+      </div>
+      <svg class="signal-chart" id="signalChart" role="img" aria-label="Distribution of exit percentages, log scaled"></svg>
+      <p class="chart-caption">Tight clustering = a real programmatic ladder. Wide scatter = manual, discretionary exits — there's no fixed pattern to copy.</p>
+      <div class="chart-legend">
+        <span><i class="swatch swatch-signal"></i>profit exit</span>
+        <span><i class="swatch swatch-loss"></i>loss exit</span>
+      </div>
+
+      <div class="stats-bar" id="statsBar"></div>
+
+      <div class="results-header">
+        <div class="panel-label">Suggested bot config</div>
+        <button id="copyConfigBtn" class="btn-secondary btn-small" type="button">Copy config</button>
+      </div>
+      <div id="suggestedConfig"></div>
+      <p class="result-note">Take-Profit and Stop-Loss phases are inferred from percentiles of this wallet's actual exits, not a literal copy of the ladder below — the deepest Stop-Loss phase is set to a full exit by convention, earlier phases use the real historical sell fraction. Migration Sell Configuration and Drawdown-Trigger are shown for completeness but left blank — TAPE has no way to see either from swap history alone.</p>
+
+      <div class="ladders">
+        <div>
+          <div class="panel-label">Take-profit ladder</div>
+          <div id="tpRows"></div>
+        </div>
+        <div>
+          <div class="panel-label">Stop-loss</div>
+          <div id="slRows"></div>
+        </div>
+      </div>
+
+      <p class="result-note">These are his realized fills, not his settings. Treat this as a hypothesis to backtest, not a formula to trust outright.</p>
+
+      <button id="downloadBtn" class="btn-secondary" type="button">Download exits as JSON</button>
+    </div>
+  </section>
 
   <footer class="site-footer">
     <p>Runs client-side only. Talks directly to Helius with your key — nothing touches a server in between.</p>
@@ -842,6 +899,94 @@
       .join('');
   }
 
+  function computeSuggestedConfig(exits) {
+    const wins = exits.filter((e) => e.pctChange > 0).sort((a, b) => a.pctChange - b.pctChange);
+    const losses = exits.filter((e) => e.pctChange <= 0).sort((a, b) => a.pctChange - b.pctChange);
+
+    // Use median / p75 / p90 of wins as the three phases — p25 is skipped because on
+    // this kind of data it's often a fast full-exit (sells 100%) which would close the
+    // whole position and leave nothing for phases 2/3, and p99 is usually a single outlier.
+    const tpPhases = [0.5, 0.75, 0.9]
+      .map((p) => percentile(wins, p))
+      .filter(Boolean)
+      .filter((e, i, arr) => i === 0 || Math.abs(e.pctChange - arr[i - 1].pctChange) > 0.5);
+
+    // Two-phase stop-loss ladder, matching bots that support multiple SL phases:
+    // Phase 1 = the shallower, more commonly-hit drawdown (p75 — a partial trim).
+    // Phase 2 = the deeper, tail-risk drawdown (p25 — full close). p10 is skipped as
+    // it's often a single bad outlier, same reasoning as skipping p99 on the TP side.
+    const slPhases = [0.75, 0.25]
+      .map((p) => percentile(losses, p))
+      .filter(Boolean)
+      .filter((e, i, arr) => i === 0 || Math.abs(e.pctChange - arr[i - 1].pctChange) > 0.5);
+
+    return { tpPhases: tpPhases, slPhases: slPhases };
+  }
+
+  function renderSuggestedConfig(exits) {
+    const container = document.getElementById('suggestedConfig');
+    const cfg = computeSuggestedConfig(exits);
+
+    let html = '';
+
+    html += `<div class="bot-config-group">
+      <div class="bot-config-group-label">Migration Sell Configuration</div>
+      <div class="bot-config-row bot-config-row-na">
+        <span class="bot-config-phase">—</span>
+        <span class="bot-config-field"><span class="bot-config-field-label">Migrate Sell Ratio</span><span class="bot-config-field-value bot-config-na">n/a</span></span>
+        <span class="bot-config-field"><span class="bot-config-field-label">Position Keep Ratio After Buy</span><span class="bot-config-field-value bot-config-na">n/a</span></span>
+      </div>
+      <p class="bot-config-na-note">TAPE reads swap history, not migration events — no signal for this one.</p>
+    </div>`;
+
+    html += `<div class="bot-config-group">
+      <div class="bot-config-group-label">Drawdown-Trigger to Fully Close</div>
+      <div class="bot-config-row bot-config-row-na">
+        <span class="bot-config-phase">—</span>
+        <span class="bot-config-field"><span class="bot-config-field-label">Threshold</span><span class="bot-config-field-value bot-config-na">n/a</span></span>
+        <span class="bot-config-field"><span class="bot-config-field-label">Drawdown</span><span class="bot-config-field-value bot-config-na">n/a</span></span>
+        <span class="bot-config-field"><span class="bot-config-field-label">Sell</span><span class="bot-config-field-value bot-config-na">n/a</span></span>
+      </div>
+      <p class="bot-config-na-note">Needs the token's peak price during the hold, not just entry/exit — TAPE doesn't pull price candles yet.</p>
+    </div>`;
+
+    html += '<div class="bot-config-group"><div class="bot-config-group-label text-signal">Take Profit</div>';
+    if (cfg.tpPhases.length) {
+      html += cfg.tpPhases
+        .map(
+          (e, i) => `<div class="bot-config-row">
+        <span class="bot-config-phase">Phase ${i + 1}</span>
+        <span class="bot-config-field"><span class="bot-config-field-label">Price Increase</span><span class="bot-config-field-value text-signal">${e.pctChange.toFixed(0)}%</span></span>
+        <span class="bot-config-field"><span class="bot-config-field-label">Instant Sell</span><span class="bot-config-field-value">${e.fractionSold.toFixed(0)}%</span></span>
+      </div>`
+        )
+        .join('');
+    } else {
+      html += '<p class="ladder-empty">Not enough winning exits yet to suggest phases.</p>';
+    }
+    html += '</div>';
+
+    html += '<div class="bot-config-group"><div class="bot-config-group-label text-loss">Stop Loss</div>';
+    if (cfg.slPhases.length) {
+      html += cfg.slPhases
+        .map((e, i) => {
+          const isLast = i === cfg.slPhases.length - 1;
+          const sellPct = isLast ? 100 : e.fractionSold;
+          return `<div class="bot-config-row">
+        <span class="bot-config-phase">Phase ${i + 1}</span>
+        <span class="bot-config-field"><span class="bot-config-field-label">Price Drop</span><span class="bot-config-field-value text-loss">${Math.abs(e.pctChange).toFixed(0)}%</span></span>
+        <span class="bot-config-field"><span class="bot-config-field-label">Sell</span><span class="bot-config-field-value">${sellPct.toFixed(0)}%</span></span>
+      </div>`;
+        })
+        .join('');
+    } else {
+      html += '<p class="ladder-empty">No losing exits to derive a stop-loss from.</p>';
+    }
+    html += '</div>';
+
+    container.innerHTML = html;
+  }
+
   function getVisibleExits() {
     if (currentRangeDays == null) return allExits;
     const cutoff = Date.now() / 1000 - currentRangeDays * 86400;
@@ -858,6 +1003,7 @@
     const visible = getVisibleExits();
     renderSignalChart(visible);
     renderStatsBar(visible);
+    renderSuggestedConfig(visible);
 
     const wins = visible.filter((e) => e.pctChange > 0).sort((a, b) => a.pctChange - b.pctChange);
     const losses = visible.filter((e) => e.pctChange <= 0).sort((a, b) => a.pctChange - b.pctChange);
@@ -974,6 +1120,39 @@
     a.download = `tape-exits-${wallet}-${rangeLabel}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('copyConfigBtn').addEventListener('click', async () => {
+    const cfg = computeSuggestedConfig(getVisibleExits());
+    const lines = [];
+    lines.push('MIGRATION SELL CONFIGURATION');
+    lines.push('Migrate Sell Ratio: n/a (not observable from swap history)');
+    lines.push('Position Keep Ratio After Buy: n/a (not observable from swap history)');
+    lines.push('');
+    lines.push('DRAWDOWN-TRIGGER TO FULLY CLOSE');
+    lines.push("Threshold / Drawdown / Sell: n/a (needs price-candle history, TAPE doesn't fetch this yet)");
+    lines.push('');
+    lines.push('TAKE PROFIT');
+    cfg.tpPhases.forEach((e, i) => {
+      lines.push(`Phase ${i + 1}: Price Increase ${e.pctChange.toFixed(0)}% / Instant Sell ${e.fractionSold.toFixed(0)}%`);
+    });
+    lines.push('');
+    lines.push('STOP LOSS');
+    cfg.slPhases.forEach((e, i) => {
+      const isLast = i === cfg.slPhases.length - 1;
+      const sellPct = isLast ? 100 : e.fractionSold;
+      lines.push(`Phase ${i + 1}: Price Drop ${Math.abs(e.pctChange).toFixed(0)}% / Sell ${sellPct.toFixed(0)}%`);
+    });
+    const text = lines.join('\n');
+    const btn = document.getElementById('copyConfigBtn');
+    const original = btn.textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = 'Copied';
+    } catch (err) {
+      btn.textContent = 'Copy failed — select manually';
+    }
+    setTimeout(() => { btn.textContent = original; }, 1500);
   });
 })();
 </script>
