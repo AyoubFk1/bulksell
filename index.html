@@ -361,53 +361,93 @@
     letter-spacing: 0.06em;
   }
 
-  .bot-config-group { margin-bottom: var(--space-3); }
-  .bot-config-group:last-child { margin-bottom: 0; }
-  .bot-config-group-label {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 600;
-    margin-bottom: var(--space-2);
-  }
-  .bot-config-row {
+  .bot-section { margin-bottom: var(--space-4); }
+  .bot-section:last-child { margin-bottom: 0; }
+  .bot-section-header {
     display: flex;
     align-items: center;
-    gap: var(--space-4);
-    padding: 10px 14px;
+    gap: 7px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: var(--space-2);
+  }
+  .bot-section-icon { font-size: 11px; }
+
+  .bot-single-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: 9px 2px;
+    border-bottom: 1px solid var(--border);
+  }
+  .bot-single-row:last-of-type { border-bottom: none; }
+  .bot-single-row-label { font-size: 13px; color: var(--text-muted); }
+
+  .bot-phase-row {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-3);
+    padding: 12px 14px;
     background: var(--bg-input);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     margin-bottom: 8px;
     flex-wrap: wrap;
   }
-  .bot-config-row:last-child { margin-bottom: 0; }
-  .bot-config-phase {
+  .bot-phase-row:last-child { margin-bottom: 0; }
+
+  .phase-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 14px;
     font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--text-dim);
-    min-width: 58px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid;
+    white-space: nowrap;
   }
-  .bot-config-field { display: flex; flex-direction: column; gap: 2px; }
-  .bot-config-field-label {
+  .phase-badge-signal { color: var(--signal); border-color: var(--signal); background: rgba(255, 180, 84, 0.08); }
+  .phase-badge-loss { color: var(--loss); border-color: var(--loss); background: rgba(226, 114, 91, 0.08); }
+
+  .bot-field { display: flex; flex-direction: column; gap: 4px; min-width: 84px; flex: 1; }
+  .bot-field-label {
     font-size: 10px;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.04em;
+    white-space: nowrap;
   }
-  .bot-config-field-value {
+  .bot-field-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 10px;
+    background: var(--bg);
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius);
     font-family: var(--font-mono);
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text);
   }
-  .bot-config-row-na { opacity: 0.55; }
-  .bot-config-na { font-style: italic; font-weight: 500; }
-  .bot-config-na-note {
+  .bot-field-box .unit { color: var(--text-dim); font-weight: 400; margin-left: 6px; }
+  .bot-field-box.is-na { color: var(--text-dim); font-style: italic; font-weight: 500; }
+
+  .bot-timeout-note {
+    flex-basis: 100%;
     font-size: 11px;
     color: var(--text-dim);
-    margin: 4px 2px 0;
+    margin-top: 2px;
+  }
+  .bot-section-note {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin: 6px 2px 0;
   }
 
   .ladders {
@@ -542,7 +582,7 @@
         <button id="copyConfigBtn" class="btn-secondary btn-small" type="button">Copy config</button>
       </div>
       <div id="suggestedConfig"></div>
-      <p class="result-note">Take-Profit and Stop-Loss phases are inferred from percentiles of this wallet's actual exits, not a literal copy of the ladder below — the deepest Stop-Loss phase is set to a full exit by convention, earlier phases use the real historical sell fraction. Migration Sell Configuration and Drawdown-Trigger are shown for completeness but left blank — TAPE has no way to see either from swap history alone.</p>
+      <p class="result-note">Take-Profit and Stop-Loss phases are inferred from percentiles of this wallet's actual exits — the deepest Stop-Loss phase is forced to a full exit by convention, earlier phases use the real historical sell fraction. Migration Sell Configuration, Drawdown-Trigger, and Timeout Settings are shown for completeness but left blank — none of those are visible from swap history alone.</p>
 
       <div class="ladders">
         <div>
@@ -923,41 +963,53 @@
     return { tpPhases: tpPhases, slPhases: slPhases };
   }
 
+  function botField(label, value, isNa) {
+    const cls = isNa ? 'bot-field-box is-na' : 'bot-field-box';
+    return `<div class="bot-field">
+      <span class="bot-field-label">${label}</span>
+      <span class="${cls}">${value}<span class="unit">%</span></span>
+    </div>`;
+  }
+
   function renderSuggestedConfig(exits) {
     const container = document.getElementById('suggestedConfig');
     const cfg = computeSuggestedConfig(exits);
 
     let html = '';
 
-    html += `<div class="bot-config-group">
-      <div class="bot-config-group-label">Migration Sell Configuration</div>
-      <div class="bot-config-row bot-config-row-na">
-        <span class="bot-config-phase">—</span>
-        <span class="bot-config-field"><span class="bot-config-field-label">Migrate Sell Ratio</span><span class="bot-config-field-value bot-config-na">n/a</span></span>
-        <span class="bot-config-field"><span class="bot-config-field-label">Position Keep Ratio After Buy</span><span class="bot-config-field-value bot-config-na">n/a</span></span>
+    html += `<div class="bot-section">
+      <div class="bot-section-header"><span class="bot-section-icon">&#9873;</span>Migration Sell Configuration</div>
+      <div class="bot-single-row">
+        <span class="bot-single-row-label">Migrate Sell Ratio</span>
+        <span class="bot-field-box is-na">n/a<span class="unit">%</span></span>
       </div>
-      <p class="bot-config-na-note">TAPE reads swap history, not migration events — no signal for this one.</p>
+      <div class="bot-single-row">
+        <span class="bot-single-row-label">Position Keep Ratio After Buy</span>
+        <span class="bot-field-box is-na">n/a<span class="unit">%</span></span>
+      </div>
+      <p class="bot-section-note">TAPE reads swap history, not migration events — no signal for this one.</p>
     </div>`;
 
-    html += `<div class="bot-config-group">
-      <div class="bot-config-group-label">Drawdown-Trigger to Fully Close</div>
-      <div class="bot-config-row bot-config-row-na">
-        <span class="bot-config-phase">—</span>
-        <span class="bot-config-field"><span class="bot-config-field-label">Threshold</span><span class="bot-config-field-value bot-config-na">n/a</span></span>
-        <span class="bot-config-field"><span class="bot-config-field-label">Drawdown</span><span class="bot-config-field-value bot-config-na">n/a</span></span>
-        <span class="bot-config-field"><span class="bot-config-field-label">Sell</span><span class="bot-config-field-value bot-config-na">n/a</span></span>
+    html += `<div class="bot-section">
+      <div class="bot-section-header"><span class="bot-section-icon">&#9873;</span>Drawdown-Trigger to Fully Close</div>
+      <div class="bot-phase-row">
+        ${botField('Threshold', 'n/a', true)}
+        ${botField('Drawdown', 'n/a', true)}
+        ${botField('Sell', 'n/a', true)}
       </div>
-      <p class="bot-config-na-note">Needs the token's peak price during the hold, not just entry/exit — TAPE doesn't pull price candles yet.</p>
+      <p class="bot-section-note">Needs the token's highest price reached during the hold, not just entry/exit — TAPE reads swaps, not a price-candle history, so it can't see the peak.</p>
     </div>`;
 
-    html += '<div class="bot-config-group"><div class="bot-config-group-label text-signal">Take Profit</div>';
+    html += `<div class="bot-section">
+      <div class="bot-section-header"><span class="bot-section-icon text-signal">&#9650;</span>Take Profit</div>`;
     if (cfg.tpPhases.length) {
       html += cfg.tpPhases
         .map(
-          (e, i) => `<div class="bot-config-row">
-        <span class="bot-config-phase">Phase ${i + 1}</span>
-        <span class="bot-config-field"><span class="bot-config-field-label">Price Increase</span><span class="bot-config-field-value text-signal">${e.pctChange.toFixed(0)}%</span></span>
-        <span class="bot-config-field"><span class="bot-config-field-label">Instant Sell</span><span class="bot-config-field-value">${e.fractionSold.toFixed(0)}%</span></span>
+          (e, i) => `<div class="bot-phase-row">
+        <span class="phase-badge phase-badge-signal">Phase ${i + 1}</span>
+        ${botField('Price Increase', e.pctChange.toFixed(0))}
+        ${botField('Instant Sell', e.fractionSold.toFixed(0))}
+        <span class="bot-timeout-note">Timeout Settings: off — no basis to size Timeout Limit / Timeout Sell from swap history</span>
       </div>`
         )
         .join('');
@@ -966,16 +1018,17 @@
     }
     html += '</div>';
 
-    html += '<div class="bot-config-group"><div class="bot-config-group-label text-loss">Stop Loss</div>';
+    html += `<div class="bot-section">
+      <div class="bot-section-header"><span class="bot-section-icon text-loss">&#9660;</span>Stop Loss</div>`;
     if (cfg.slPhases.length) {
       html += cfg.slPhases
         .map((e, i) => {
           const isLast = i === cfg.slPhases.length - 1;
           const sellPct = isLast ? 100 : e.fractionSold;
-          return `<div class="bot-config-row">
-        <span class="bot-config-phase">Phase ${i + 1}</span>
-        <span class="bot-config-field"><span class="bot-config-field-label">Price Drop</span><span class="bot-config-field-value text-loss">${Math.abs(e.pctChange).toFixed(0)}%</span></span>
-        <span class="bot-config-field"><span class="bot-config-field-label">Sell</span><span class="bot-config-field-value">${sellPct.toFixed(0)}%</span></span>
+          return `<div class="bot-phase-row">
+        <span class="phase-badge phase-badge-loss">Phase ${i + 1}</span>
+        ${botField('Price Drop', Math.abs(e.pctChange).toFixed(0))}
+        ${botField('Sell', sellPct.toFixed(0))}
       </div>`;
         })
         .join('');
@@ -1134,7 +1187,7 @@
     lines.push('');
     lines.push('TAKE PROFIT');
     cfg.tpPhases.forEach((e, i) => {
-      lines.push(`Phase ${i + 1}: Price Increase ${e.pctChange.toFixed(0)}% / Instant Sell ${e.fractionSold.toFixed(0)}%`);
+      lines.push(`Phase ${i + 1}: Price Increase ${e.pctChange.toFixed(0)}% / Instant Sell ${e.fractionSold.toFixed(0)}% / Timeout Settings: off`);
     });
     lines.push('');
     lines.push('STOP LOSS');
@@ -1153,9 +1206,8 @@
       btn.textContent = 'Copy failed — select manually';
     }
     setTimeout(() => { btn.textContent = original; }, 1500);
-  });
+  });//tttt
 })();
- //test
 </script>
 </body>
 </html>
